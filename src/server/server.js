@@ -1,49 +1,77 @@
 require('dotenv').config();
+
 const Hapi = require('@hapi/hapi');
 const routes = require('../server/routes');
 const loadModel = require('../services/loadModel');
 const InputError = require('../exceptions/InputError');
- 
+
 (async () => {
+    try {
+        const server = await createServer();
+
+        await startServer(server);
+    } catch (error) {
+        console.error(`Error starting server: ${error.message}`);
+    }
+})();
+
+async function createServer() {
     const server = Hapi.server({
-        port: 3000,
+        port: process.env.PORT || 3000,
         host: '0.0.0.0',
         routes: {
             cors: {
-              origin: ['*'],
+                origin: ['*'],
             },
         },
     });
- 
+
     const model = await loadModel();
     server.app.model = model;
- 
+
     server.route(routes);
- 
-    server.ext('onPreResponse', function (request, h) {
-        const response = request.response;
- 
-        if (response instanceof InputError) {
-            const newResponse = h.response({
-                status: 'fail',
-                message: `${response.message} Silakan gunakan foto lain.`
-            })
-            newResponse.code(response.statusCode)
-            return newResponse;
-        }
- 
-        if (response.isBoom) {
-            const newResponse = h.response({
-                status: 'fail',
-                message: response.message
-            })
-            newResponse.code(response.output.statusCode)
-            return newResponse;
-        }
- 
-        return h.continue;
-    });
- 
+
+    server.ext('onPreResponse', handleResponse);
+
+    return server;
+}
+
+async function startServer(server) {
     await server.start();
-    console.log(`Server start at: ${server.info.uri}`);
-})();
+    console.log(`Server started at: ${server.info.uri}`);
+}
+
+function handleResponse(request, h) {
+    const response = request.response;
+
+    if (response.isBoom && response.output.statusCode === 413) {
+        return handlePayloadTooLarge(h);
+    }
+
+    if (response instanceof InputError || response.isBoom) {
+        return handlePredictionError(response, h);
+    }
+
+    return h.continue;
+}
+
+function handlePayloadTooLarge(h) {
+    const newResponse = h.response({
+        status: 'fail',
+        message: 'Payload content length greater than maximum allowed: 1000000',
+    });
+
+    newResponse.code(413);
+    return newResponse;
+}
+
+function handlePredictionError(response, h) {
+    const statusCode = response instanceof InputError ? response.statusCode : response.output.statusCode;
+    const newResponse = h.response({
+        status: 'fail',
+        message: 'Terjadi kesalahan dalam melakukan prediksi',
+    });
+
+    newResponse.code(parseInt(statusCode));
+    return newResponse;
+}
