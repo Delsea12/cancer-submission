@@ -6,5 +6,5 @@ class InputError extends ClientError {
         this.name = 'InputError';
     }
 }
-
+ 
 module.exports = InputError;
