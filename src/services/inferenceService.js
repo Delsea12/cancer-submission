@@ -23,8 +23,8 @@ function preprocessImage(image) {
 }
 
 async function getConfidenceScore(model, tensor) {
-    const prediction = model.predict(tensor);
-    const score = await prediction.data();
+    const predictions = model.predict(tensor);
+    const score = await predictions.data();
     return score[0] * 100;
 }
 

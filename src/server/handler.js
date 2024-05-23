@@ -16,7 +16,7 @@ async function postPredictHandler(request, h) {
     "result": result,
     "suggestion": suggestion,
     "createdAt": createdAt
-}
+  };
 
   await storeData(id, data);
 
@@ -32,9 +32,9 @@ async function postPredictHandler(request, h) {
 }
 
 async function getHistoriesHandler(request, h) {
-  const db = new Firestore();                            // Inisialisasi objek Firestore
-  const predictCollection = db.collection('prediction'); // Ambil koleksi "predictions"
-  const predictSnapshot = await predictCollection.get(); // Ambil snapshot dari koleksi
+  const db = new Firestore();                            
+  const predictCollection = db.collection('predictions'); // Mengubah 'prediction' menjadi 'predictions'
+  const predictSnapshot = await predictCollection.get(); 
 
   const data = [];
 
